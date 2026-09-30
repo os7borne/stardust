@@ -354,7 +354,7 @@
 <pre class="mermaid">
 flowchart LR
     A["Cron trigger<br/>7 scheduled jobs"] --> B["Hermes Gateway<br/>loads a skill into context"]
-    B --> C["LLM reasons<br/>DeepSeek v4 Flash"]
+    B --> C["LLM reasons<br/>GLM 5.3 Flash"]
     C --> D["stardust plugin<br/>33 registered tools"]
     D --> E["stardust_cli.py<br/>single entrypoint"]
     E --> F["Trading engine<br/>scan · size · order · ledger"]
@@ -365,6 +365,7 @@ flowchart LR
 
     <div class="prose">
       <p>The LLM never talks to the broker directly, and never touches Python it wasn't handed. It reasons in language, then calls a named tool; the tool shells out to the same tested CLI a human would run by hand. That's a deliberate design choice, stated plainly in the agent's own operating manual: <em>the agent figures out what to do and calls the tools, instead of running raw scripts.</em> Every action — a scan, a buy, an exit, a token refresh — passes through the identical, already-hardened code path regardless of who or what initiated it.</p>
+      <p>The model behind the reasoning step has changed once. From inception on 18 August through 30 September, Stardust ran on DeepSeek v4 Flash. From 1 October it runs on GLM 5.3 Flash. The switch is deliberate: it's a chance to see how a different model actually trades, what it costs in tokens to run, and to keep the agent on current model capabilities rather than locked to whatever it launched with. Because the tools, skill, and risk rules sit outside the model, the swap didn't change anything else in the pipeline.</p>
       <p>It's also why there's no MCP server here. Dhan's API is already just Python functions the engine calls; wrapping that a second time behind a protocol server would mean two credential surfaces, two places for IPv4/whitelist quirks to diverge, two things to keep in sync. Instead the plugin registers native tools that shell into the same venv, the same scrip-guard, the same state file the CLI has always used. One environment, reused, not re-implemented.</p>
       <p>There's a strict division of labor underneath that: a <strong>skill</strong> teaches the model how to think — the mandate, the invariants, the accumulated pitfalls — and a <strong>tool</strong> is the only thing it's allowed to act with. Every unit of real work — a quote, a scan, an order, a ledger write — exists as a named tool, never as prose telling the model to run a script from memory. The skill can reason all it wants; it still has to reach for a tool to actually do anything.</p>
       <p>The premarket stage doesn't only look at price. It reads the day's news through the same scan pipeline and folds that straight into both the sized "setup of the day" and the standing watchlist — a name can get added or dropped purely off an overnight headline, before a single candle of the new session has printed.</p>
@@ -586,6 +587,7 @@ stateDiagram-v2
     <p class="perf-note"><sup>1</sup> September NET includes the full month's model token bill ($7.43 / ₹714) and the ₹500 Dhan API subscription. Costs are charged at month boundaries, which is why NET equals GROSS for the mid-month weeks. <sup>2</sup> From inception on 18 August to the 31 August close.</p>
     <p class="perf-note"><sup>3</sup> <strong>Not agent performance.</strong> 1–4 Sep is when the agent was given access to my legacy holdings portfolio. The +14.48% comes from bringing those holdings into the book, not from trades the agent made. That week also drives most of September's monthly figure, so read the September row with that in mind.</p>
     <p class="perf-note">Method: each window opens at the prior trading day's close and closes at the last close on or before the period end — the same window for the book and both indices. Every row is measured on its own. The weekly rows won't compound exactly into the monthly figure because the legacy holdings came into the book during September and changed the capital base. "pp" is a plain subtraction (Stardust NET minus NIFTY 50), not a risk-adjusted measure.</p>
+    <p class="perf-note">Model: every figure above comes from the DeepSeek v4 Flash period (18 August to 30 September). The agent moved to GLM 5.3 Flash on 1 October, so none of these numbers reflect the new model.</p>
 
     <div class="prose" style="margin-top:30px;">
       <p>The honest read: September's headline, about fourteen and a half points ahead of NIFTY, is mostly an accounting event. On 1 September the agent was handed my legacy holdings portfolio, and bringing those holdings into the book produced the +14.48% week. The agent didn't trade its way to that number, so it shouldn't count as evidence the agent is any good.</p>
